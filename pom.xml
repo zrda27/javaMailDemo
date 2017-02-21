@@ -53,7 +53,7 @@
 </dependencies>
 
 <build>
-    <finalName>algorithm</finalName>
+    <finalName>javaMailDemo</finalName>
     <plugins>
         <plugin>
             <artifactId>maven-compiler-plugin</artifactId>
