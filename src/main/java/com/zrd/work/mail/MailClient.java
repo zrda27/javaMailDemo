@@ -1,9 +1,14 @@
 package com.zrd.work.mail;
 
-import com.sun.istack.internal.NotNull;
+import com.sun.istack.internal.ByteArrayDataSource;
 
+import javax.activation.DataHandler;
 import javax.mail.*;
+import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.Properties;
 
@@ -18,18 +23,19 @@ public class MailClient {
     private Integer sendPort = null;
     private String user = null;
     private String password = null;
-    private String url = null;
-    private String root = null;
-    private String pattern = "%";
-    private boolean recursive = false;
-    private boolean verbose = false;
-    private boolean debug = false;
     private Session session;
     private Properties props;
 
-    MailClient(){}
-
-    MailClient(@NotNull String receiveProtocol, String receiveHost, Integer receivePort, String sendHost,
+    /**
+     * @param receiveProtocol notNull, receive mail protocol, use imap, imaps, pop3, pop3s
+     * @param receiveHost notNull, receive mail server host
+     * @param receivePort nullable, receive mail server port, default value depends on protocol
+     * @param sendHost notNull, send mail server host, use smtp protocol
+     * @param sendPort nullable, send mail server port, default value depends on smtp protocol
+     * @param user notNull, email account, such as "someone@gmail.com"
+     * @param password notNull, email account password
+     */
+    public MailClient(String receiveProtocol, String receiveHost, Integer receivePort, String sendHost,
                Integer sendPort, String user, String password){
         this.receiveProtocol = receiveProtocol;
         this.receiveHost = receiveHost;
@@ -41,15 +47,22 @@ public class MailClient {
         init();
     }
 
-    public void init() {
+    /**
+     * init mail server and authention
+     */
+    private void init() {
         props = new Properties();
-        props.put("mail.smtp.auth", "true");
+        //send mail server args setup
+        props.put("mail.smtp.auth", true);
         props.put("mail.smtp.host", sendHost);
-        props.put("mail.store.protocol", receiveProtocol);
-        props.put("mail.store.host", receiveHost);
-        props.put("mail.store.port", receivePort);
         if(sendPort != null){
             props.put("mail.smtp.port", sendPort);
+        }
+        props.put("mail.from", user);
+        //receive mail server args setup
+        props.put("mail." + receiveProtocol + ".host", receiveHost);
+        if(receivePort != null){
+            props.put("mail." + receiveProtocol + ".port", receivePort);
         }
         Authenticator authenticator = new Authenticator() {
             @Override
@@ -57,20 +70,69 @@ public class MailClient {
                 return new PasswordAuthentication(user, password);
             }
         };
+        //create session instance use props
         this.session = Session.getInstance(props, authenticator);
     }
 
-    public void sendMsg() throws MessagingException {
-        MimeMessage msg = new MimeMessage(session);
-        msg.setFrom("zrda27@163.com");
-        msg.setRecipients(Message.RecipientType.TO, "419505403@qq.com");
-        msg.setSubject("你好", "utf-8");
-        msg.setSentDate(new Date());
-        msg.setText("你好", "utf-8");
-        Transport.send(msg);
+    /**
+     * complete method to send msg
+     * @param recipients notNull
+     * @param ccRecipients nullable, send copys to someones
+     * @param bccRecipients nullable, send copys secretly to someones
+     * @param subject nullable, email title
+     * @param content email content, can be html
+     * @param filenames nullable, attach files
+     * @throws MessagingException
+     * @throws UnsupportedEncodingException
+     */
+    public void sendMsg(String[] recipients, String[] ccRecipients, String[] bccRecipients,
+                        String subject, String content, String[] filenames) throws MessagingException, IOException {
+        if(content == null && filenames == null){
+            throw new IllegalArgumentException("either content or filenames " +
+                    "should be not null");
+        }
+        MimeMessage mimeMessage = new MimeMessage(session);
+        //set recipient
+        for(String recipient: recipients){
+            mimeMessage.addRecipients(Message.RecipientType.TO, recipient);
+        }
+        //set ccRecipient
+        if(ccRecipients != null){
+            for(String recipient: ccRecipients){
+                mimeMessage.addRecipients(Message.RecipientType.CC, recipient);
+            }
+        }
+        //set bccRecipient
+        if(bccRecipients != null){
+            for(String recipient: bccRecipients){
+                mimeMessage.addRecipients(Message.RecipientType.BCC, recipient);
+            }
+        }
+        //set subject
+        mimeMessage.setSubject(subject, "utf-8");
+        mimeMessage.setSentDate(new Date());
+
+        //set mail body
+        Multipart multipart = new MimeMultipart();
+        if(content != null){
+            MimeBodyPart contentPart = new MimeBodyPart();
+            contentPart.setDataHandler(new DataHandler(
+                    new ByteArrayDataSource(content.getBytes("utf-8"), "text/html")));
+            multipart.addBodyPart(contentPart);
+        }
+        //set mail attach file
+        if(filenames != null){
+            for(String filename: filenames){
+                MimeBodyPart filesPart = new MimeBodyPart();
+                filesPart.attachFile(filename);
+                multipart.addBodyPart(filesPart);
+            }
+        }
+        mimeMessage.setContent(multipart);
+        Transport.send(mimeMessage);
     }
 
-    public void readMsg() throws Exception {
+    public void readMsg() throws MessagingException {
         Store store = session.getStore(receiveProtocol);
         store.connect(user, password);
         System.out.println(store.isConnected());
@@ -87,31 +149,5 @@ public class MailClient {
             System.out.println(msg.getSubject());
         }
         store.close();
-    }
-
-    public static void main(String[] args) throws Exception {
-        /*Properties props = System.getProperties();
-        props.put("mail.smtp.host", "smtp.163.com");
-        Session session = Session.getInstance(System.getProperties());
-        Store store = session.getStore("pop3s");
-        store.connect("pop.163.com", "zrda27", "wy901213");
-        System.out.println(store.isConnected());
-        Folder pns = store.getDefaultFolder();
-        Folder[] folders = pns.list();
-        for(Folder folder: folders){
-            System.out.println(folder.getName());
-        }
-        Folder offers = pns.getFolder("INBOX");
-        System.out.println(offers.getMessageCount());
-        offers.open(Folder.READ_ONLY);
-        Message[] msgs = offers.getMessages();
-        for(Message msg: msgs){
-            System.out.println(msg.getSubject());
-        }
-        store.close();*/
-        MailClient client = new MailClient("imaps", "imap.163.com", 993,
-                "smtp.163.com", null, "zrda27", "wy901213");
-        //client.sendMsg();
-        client.readMsg();
     }
 }
