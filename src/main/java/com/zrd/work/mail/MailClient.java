@@ -1,7 +1,5 @@
 package com.zrd.work.mail;
 
-import com.sun.istack.internal.ByteArrayDataSource;
-
 import javax.activation.DataHandler;
 import javax.mail.*;
 import javax.mail.internet.MimeBodyPart;
@@ -116,8 +114,7 @@ public class MailClient {
         Multipart multipart = new MimeMultipart();
         if(content != null){
             MimeBodyPart contentPart = new MimeBodyPart();
-            contentPart.setDataHandler(new DataHandler(
-                    new ByteArrayDataSource(content.getBytes("utf-8"), "text/html")));
+            contentPart.setDataHandler(new DataHandler(content, "text/html;charset=utf-8"));
             multipart.addBodyPart(contentPart);
         }
         //set mail attach file
@@ -141,7 +138,7 @@ public class MailClient {
         for(Folder folder: folders){
             System.out.println(folder.getName());
         }
-        Folder offers = pns.getFolder("已发送");
+        Folder offers = pns.getFolder("INBOX");
         System.out.println(offers.getMessageCount());
         offers.open(Folder.READ_ONLY);
         Message[] msgs = offers.getMessages();
