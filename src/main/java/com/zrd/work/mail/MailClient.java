@@ -24,8 +24,12 @@ public class MailClient {
     private Session session;
     private Properties props;
 
+    private Folder inbox;
+
+    public MailClient(){}
+
     /**
-     * @param receiveProtocol notNull, receive mail protocol, use imap, imaps, pop3, pop3s
+     * @param receiveProtocol notNull, receive mail protocol, use imap, imaps, pop3 or pop3s
      * @param receiveHost notNull, receive mail server host
      * @param receivePort nullable, receive mail server port, default value depends on protocol
      * @param sendHost notNull, send mail server host, use smtp protocol
@@ -34,7 +38,7 @@ public class MailClient {
      * @param password notNull, email account password
      */
     public MailClient(String receiveProtocol, String receiveHost, Integer receivePort, String sendHost,
-               Integer sendPort, String user, String password){
+               Integer sendPort, String user, String password) throws MessagingException {
         this.receiveProtocol = receiveProtocol;
         this.receiveHost = receiveHost;
         this.receivePort = receivePort;
@@ -42,13 +46,14 @@ public class MailClient {
         this.sendPort = sendPort;
         this.user = user;
         this.password = password;
-        init();
     }
 
     /**
      * init mail server and authention
      */
-    private void init() {
+    public void init() throws MessagingException {
+        this.checkArgs();
+
         props = new Properties();
         //send mail server args setup
         props.put("mail.smtp.auth", true);
@@ -58,6 +63,7 @@ public class MailClient {
         }
         props.put("mail.from", user);
         //receive mail server args setup
+        props.put("mail.store.protocol", receiveProtocol);
         props.put("mail." + receiveProtocol + ".host", receiveHost);
         if(receivePort != null){
             props.put("mail." + receiveProtocol + ".port", receivePort);
@@ -70,6 +76,41 @@ public class MailClient {
         };
         //create session instance use props
         this.session = Session.getInstance(props, authenticator);
+
+        //try to open the INBOX
+        this.initInbox();
+    }
+
+    /**
+     *
+     */
+    private void checkArgs(){
+        if(this.receiveProtocol == null){
+            throw new NullPointerException("missing receiveProtocol");
+        }
+        if(this.receiveHost == null){
+            throw new NullPointerException("missing receiveHost");
+        }
+        if(this.sendHost == null){
+            throw new NullPointerException("missing sendHost");
+        }
+        if(this.user == null){
+            throw new NullPointerException("missing user");
+        }
+        if(this.password == null){
+            throw new NullPointerException("missing password");
+        }
+    }
+
+    /**
+     * @throws MessagingException
+     */
+    private void initInbox() throws MessagingException {
+        Store store = session.getStore();
+        store.connect();
+        Folder pns = store.getDefaultFolder();
+        this.inbox = pns.getFolder("INBOX");
+        this.inbox.open(Folder.READ_ONLY);
     }
 
     /**
@@ -129,22 +170,67 @@ public class MailClient {
         Transport.send(mimeMessage);
     }
 
-    public void readMsg() throws MessagingException {
-        Store store = session.getStore(receiveProtocol);
-        store.connect(user, password);
-        System.out.println(store.isConnected());
-        Folder pns = store.getDefaultFolder();
-        Folder[] folders = pns.list();
-        for(Folder folder: folders){
-            System.out.println(folder.getName());
-        }
-        Folder offers = pns.getFolder("INBOX");
-        System.out.println(offers.getMessageCount());
-        offers.open(Folder.READ_ONLY);
-        Message[] msgs = offers.getMessages();
-        for(Message msg: msgs){
-            System.out.println(msg.getSubject());
-        }
-        store.close();
+    public String getReceiveProtocol() {
+        return receiveProtocol;
+    }
+
+    public void setReceiveProtocol(String receiveProtocol) {
+        this.receiveProtocol = receiveProtocol;
+    }
+
+    public String getReceiveHost() {
+        return receiveHost;
+    }
+
+    public void setReceiveHost(String receiveHost) {
+        this.receiveHost = receiveHost;
+    }
+
+    public Integer getReceivePort() {
+        return receivePort;
+    }
+
+    public void setReceivePort(Integer receivePort) {
+        this.receivePort = receivePort;
+    }
+
+    public String getSendHost() {
+        return sendHost;
+    }
+
+    public void setSendHost(String sendHost) {
+        this.sendHost = sendHost;
+    }
+
+    public Integer getSendPort() {
+        return sendPort;
+    }
+
+    public void setSendPort(Integer sendPort) {
+        this.sendPort = sendPort;
+    }
+
+    public String getUser() {
+        return user;
+    }
+
+    public void setUser(String user) {
+        this.user = user;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public Folder getInbox() {
+        return inbox;
+    }
+
+    public void setInbox(Folder inbox) {
+        this.inbox = inbox;
     }
 }

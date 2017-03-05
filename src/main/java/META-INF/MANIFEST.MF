@@ -1,0 +1,5 @@
+Manifest-Version: 1.0
+Class-Path: lib/smtp-1.5.6.jar lib/imap-1.5.6.jar lib/javax.mail-1.5.6
+ .jar lib/pop3-1.5.6.jar
+Main-Class: com.zrd.work.mail.app.MailClientApp
+
