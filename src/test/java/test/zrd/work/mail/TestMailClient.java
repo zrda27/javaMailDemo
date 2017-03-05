@@ -15,7 +15,7 @@ public class TestMailClient {
         //see construts for the argument descriptions
         try {
             client = new MailClient("imaps", "imap.163.com", null,
-                    "smtp.163.com", null, "zrda27@163.com", "wy901213.");
+                    "smtp.163.com", null, "zrda27@163.com", "xx");
             client.init();
         } catch (MessagingException e) {
             e.printStackTrace();
