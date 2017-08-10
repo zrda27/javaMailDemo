@@ -14,8 +14,8 @@ public class TestMailClient {
     {
         //see construts for the argument descriptions
         try {
-            client = new MailClient("imaps", "imap.163.com", null,
-                    "smtp.163.com", null, "zrda27@163.com", "xx");
+            client = new MailClient("imap", "mail.cmrh.com", null,
+                    "mail.cmrh.com", null, "zengrd@cmrh.com", "xx");
             client.init();
         } catch (MessagingException e) {
             e.printStackTrace();
@@ -24,7 +24,7 @@ public class TestMailClient {
 
     @Test
     public void testSendMsg() throws Exception {
-        client.sendMsg(new String[]{"419505403@qq.com"}, null,
+        client.sendMsg(new String[]{"zengrd@cmrh.com"}, null,
                 null, "你好", "<h1>你好吗</h1>",
                 new String[]{TestMailClient.class.getResource("/11.txt").getPath(), TestMailClient.class.getResource("/11.txt").getPath()});
     }
